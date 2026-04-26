@@ -4,14 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.99 0 0);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
-  --navy: #232f3e;
-  --amber: #ff9900;
-  --price-red: #B12704;
-  --status-green: #067d62;
-  --status-amber: #ff9900;
-  --status-gray: #6b7280;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -83,12 +77,6 @@
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --color-navy: var(--navy);
-  --color-amber: var(--amber);
-  --color-price-red: var(--price-red);
-  --color-status-green: var(--status-green);
-  --color-status-amber: var(--status-amber);
-  --color-status-gray: var(--status-gray);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
