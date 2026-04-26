@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { ChevronUp } from 'lucide-react'
-import { Loader2 } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { Loader2, ChevronUp } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Hero } from '@/components/hero'
 import { FilterBar } from '@/components/filter-bar'
@@ -15,10 +15,18 @@ import type { DistanceFilter, StatusFilter } from '@/lib/types'
 const PAGE_SIZE = 20
 const STANDARD_DISTANCES = ['5km', '10km', '하프', '풀']
 
-export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [distanceFilter, setDistanceFilter] = useState<DistanceFilter>('ALL')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+function HomeContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '')
+  const [distanceFilter, setDistanceFilter] = useState<DistanceFilter>(
+    (searchParams.get('distance') as DistanceFilter) ?? 'ALL'
+  )
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    (searchParams.get('status') as StatusFilter) ?? 'ALL'
+  )
 
   const [races, setRaces] = useState<ApiRaceListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -46,6 +54,25 @@ export default function Home() {
       setIsLoading(false)
     }
     fetchInitial()
+  }, [])
+
+  // URL 동기화 (검색어는 300ms 디바운스)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams()
+      if (searchQuery) params.set('q', searchQuery)
+      if (distanceFilter !== 'ALL') params.set('distance', distanceFilter)
+      if (statusFilter !== 'ALL') params.set('status', statusFilter)
+      const qs = params.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery, distanceFilter, statusFilter, router, pathname])
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   const filteredRaces = useMemo(() => {
@@ -91,20 +118,12 @@ export default function Home() {
   }, [filteredRaces.length])
 
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 400)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel) return
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          loadMore()
-        }
+        if (entries[0].isIntersecting && hasMore) loadMore()
       },
       { rootMargin: '200px' }
     )
@@ -183,5 +202,13 @@ export default function Home() {
         </button>
       )}
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   )
 }
