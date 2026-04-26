@@ -1,9 +1,10 @@
 import { getAuthToken, clearAuthToken } from './auth'
 import type {
   ApiRace,
-  ApiRaceListItem,
   RacesListResponse,
   LoginResponse,
+  UserLoginResponse,
+  UserRegisterResponse,
   RegisterRaceRequest,
   UpdateRaceRequest,
   ApiError,
@@ -28,14 +29,6 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        clearAuthToken()
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
-        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
-      }
-
       const errorData: ApiError = await response.json().catch(() => ({
         message: 'An error occurred',
       }))
@@ -58,16 +51,35 @@ class ApiClient {
       throw new Error('인증이 필요합니다')
     }
 
-    return this.request<T>(endpoint, {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
+        'Content-Type': 'application/json',
         ...options.headers,
         Authorization: `Bearer ${token}`,
       },
     })
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        clearAuthToken()
+        if (typeof window !== 'undefined') {
+          window.location.href = '/admin/login'
+        }
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
+      }
+
+      const errorData: ApiError = await response.json().catch(() => ({
+        message: 'An error occurred',
+      }))
+      throw new Error(errorData.message || `HTTP error ${response.status}`)
+    }
+
+    if (response.status === 204) return undefined as T
+    return response.json()
   }
 
-  // Public APIs
+  // ── Public APIs ────────────────────────────────────────
   async getRaces(): Promise<RacesListResponse> {
     return this.request<RacesListResponse>('/api/v1/races')
   }
@@ -76,7 +88,29 @@ class ApiClient {
     return this.request<ApiRace>(`/api/v1/races/${id}`)
   }
 
-  // Admin APIs
+  // ── User Auth ──────────────────────────────────────────
+  async userLogin(email: string, password: string): Promise<UserLoginResponse> {
+    return this.request<UserLoginResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+  }
+
+  async userRegister(email: string, password: string): Promise<UserRegisterResponse> {
+    return this.request<UserRegisterResponse>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+  }
+
+  async verifyEmail(token: string): Promise<UserRegisterResponse> {
+    return this.request<UserRegisterResponse>('/api/v1/auth/verify', {
+      method: 'PATCH',
+      body: JSON.stringify({ token }),
+    })
+  }
+
+  // ── Admin Auth ─────────────────────────────────────────
   async login(username: string, password: string): Promise<LoginResponse> {
     return this.request<LoginResponse>('/admin/auth/login', {
       method: 'POST',
@@ -84,6 +118,7 @@ class ApiClient {
     })
   }
 
+  // ── Admin Race APIs ────────────────────────────────────
   async registerRace(data: RegisterRaceRequest): Promise<ApiRace> {
     return this.authRequest<ApiRace>('/admin/races/register', {
       method: 'POST',

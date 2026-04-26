@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
-import { setUserSession } from '@/lib/auth'
+import { setAuthToken } from '@/lib/auth'
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -22,17 +22,17 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
 
-    if (!email.trim() || !password.trim()) {
-      setError('이메일과 비밀번호를 입력해주세요.')
+    if (!username.trim() || !password.trim()) {
+      setError('아이디와 비밀번호를 입력해주세요.')
       return
     }
 
     setIsLoading(true)
     try {
-      const response = await api.userLogin(email.trim(), password)
-      setUserSession(response.accessToken, email.trim())
-      toast.success('로그인되었습니다')
-      router.push('/')
+      const response = await api.login(username, password)
+      setAuthToken(response.token)
+      toast.success('관리자로 로그인되었습니다')
+      router.push('/admin')
       router.refresh()
     } catch (err) {
       const message = err instanceof Error ? err.message : '로그인에 실패했습니다'
@@ -49,19 +49,18 @@ export default function LoginPage() {
       </Link>
 
       <div className="w-full max-w-sm rounded-lg border border-gray-300 bg-white px-6 py-6 shadow-sm">
-        <h1 className="mb-5 text-xl font-semibold text-foreground">로그인</h1>
+        <h1 className="mb-1 text-xl font-semibold text-foreground">관리자 로그인</h1>
+        <p className="mb-5 text-sm text-muted-foreground">관리자 전용 페이지입니다</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-medium">
-              이메일
+            <Label htmlFor="username" className="text-sm font-medium">
+              아이디
             </Label>
             <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               autoFocus
               disabled={isLoading}
             />
@@ -76,7 +75,6 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
               disabled={isLoading}
             />
           </div>
@@ -102,43 +100,11 @@ export default function LoginPage() {
             )}
           </Button>
         </form>
-
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          계속함으로써{' '}
-          <span className="cursor-pointer text-blue-600 hover:underline">이용약관</span>
-          {' '}및{' '}
-          <span className="cursor-pointer text-blue-600 hover:underline">개인정보처리방침</span>
-          에 동의합니다.
-        </p>
       </div>
 
-      <div className="relative my-5 w-full max-w-sm">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-gray-100 px-3 text-xs text-muted-foreground">
-            런마켓이 처음이신가요?
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full max-w-sm">
-        <Button
-          asChild
-          variant="outline"
-          className="w-full border-gray-400 text-sm font-medium hover:bg-gray-50"
-        >
-          <Link href="/signup">새 계정 만들기</Link>
-        </Button>
-      </div>
-
-      <div className="mt-10 border-t border-gray-300 pt-5 text-center">
-        <Link
-          href="/admin/login"
-          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-        >
-          관리자 로그인
+      <div className="mt-5 text-sm">
+        <Link href="/login" className="text-muted-foreground hover:text-foreground hover:underline text-xs">
+          ← 일반 로그인으로 돌아가기
         </Link>
       </div>
     </div>

@@ -27,10 +27,22 @@ export interface ApiRace extends ApiRaceListItem {
 
 export type RacesListResponse = ApiRaceListItem[]
 
+// ── Admin Auth ─────────────────────────────────────────
 export interface LoginResponse {
   token: string
 }
 
+// ── User Auth ──────────────────────────────────────────
+export interface UserLoginResponse {
+  accessToken: string
+  expiresAt: string
+}
+
+export interface UserRegisterResponse {
+  message: string
+}
+
+// ── Admin Requests ─────────────────────────────────────
 export interface RegisterRaceRequest {
   name: string
   region: string
