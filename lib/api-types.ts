@@ -64,6 +64,7 @@ export interface RegisterRaceRequest {
 export interface UpdateRaceRequest extends RegisterRaceRequest {}
 
 export interface ApiError {
-  message: string
-  error?: string
+  detail?: string   // Spring ProblemDetail
+  message?: string
+  error?: string    // Spring BasicErrorController
 }
