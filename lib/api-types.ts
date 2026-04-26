@@ -10,6 +10,8 @@ export interface ApiRaceListItem {
   organizer: string
   phone: string
   registrationStatus: RegistrationStatus
+  likeCount: number
+  isLiked: boolean
 }
 
 export interface ApiRace extends ApiRaceListItem {
@@ -62,6 +64,11 @@ export interface RegisterRaceRequest {
 }
 
 export interface UpdateRaceRequest extends RegisterRaceRequest {}
+
+export interface LikeResponse {
+  likeCount: number
+  isLiked: boolean
+}
 
 export interface ApiError {
   detail?: string   // Spring ProblemDetail
