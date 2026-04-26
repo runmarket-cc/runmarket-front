@@ -16,6 +16,7 @@ const distanceOptions: { value: DistanceFilter; label: string }[] = [
   { value: '10km', label: '10K' },
   { value: '하프', label: '하프' },
   { value: '풀', label: '풀' },
+  { value: '기타', label: '기타' },
 ]
 
 const statusOptions: { value: StatusFilter; label: string }[] = [
