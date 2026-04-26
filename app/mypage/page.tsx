@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronRight, Mail, ShieldCheck, Trash2 } from 'lucide-react'
+import { ChevronRight, Mail, ShieldCheck, Trash2, Loader2 } from 'lucide-react'
 import { isUserLoggedIn, getUserEmail } from '@/lib/auth'
 import { api } from '@/lib/api'
+import type { ApiRaceListItem } from '@/lib/api-types'
+import { RaceCard } from '@/components/race-card'
 
 export default function MypagePage() {
   const router = useRouter()
@@ -14,6 +16,8 @@ export default function MypagePage() {
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [likedRaces, setLikedRaces] = useState<ApiRaceListItem[]>([])
+  const [likedRacesLoading, setLikedRacesLoading] = useState(true)
 
   useEffect(() => {
     if (!isUserLoggedIn()) {
@@ -21,6 +25,11 @@ export default function MypagePage() {
       return
     }
     setEmail(getUserEmail())
+
+    api.getLikedRaces()
+      .then(setLikedRaces)
+      .catch(() => {})
+      .finally(() => setLikedRacesLoading(false))
   }, [router])
 
   if (!email) return null
@@ -74,6 +83,26 @@ export default function MypagePage() {
               <ChevronRight className="h-4 w-4 text-gray-300" />
             </div>
           </div>
+        </div>
+
+        {/* Liked races */}
+        <div className="rounded-lg border bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">좋아요한 대회</p>
+          </div>
+          {likedRacesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            </div>
+          ) : likedRaces.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-400">좋아요한 대회가 없습니다.</p>
+          ) : (
+            <div className="p-4 grid grid-cols-1 gap-4">
+              {likedRaces.map((race) => (
+                <RaceCard key={race.id} race={race} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Danger zone */}

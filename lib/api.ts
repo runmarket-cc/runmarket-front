@@ -7,6 +7,7 @@ import type {
   UserRegisterResponse,
   RegisterRaceRequest,
   UpdateRaceRequest,
+  LikeResponse,
 } from './api-types'
 
 const API_BASE = 'https://api.runmarket.cc'
@@ -45,6 +46,47 @@ class ApiClient {
       return undefined as T
     }
 
+    return response.json()
+  }
+
+  private async userAuthRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = getUserToken()
+    if (!token) {
+      throw new Error('인증이 필요합니다')
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearUserSession()
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
+      }
+
+      const errorData = await response.json().catch(() => null)
+      const message =
+        errorData?.detail ||
+        errorData?.message ||
+        errorData?.error ||
+        `HTTP error ${response.status}`
+      throw new Error(message)
+    }
+
+    if (response.status === 204) return undefined as T
     return response.json()
   }
 
@@ -91,11 +133,17 @@ class ApiClient {
 
   // ── Public APIs ────────────────────────────────────────
   async getRaces(): Promise<RacesListResponse> {
-    return this.request<RacesListResponse>('/api/v1/races')
+    const token = getUserToken()
+    return this.request<RacesListResponse>('/api/v1/races', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
   }
 
   async getRace(id: string): Promise<ApiRace> {
-    return this.request<ApiRace>(`/api/v1/races/${id}`)
+    const token = getUserToken()
+    return this.request<ApiRace>(`/api/v1/races/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
   }
 
   // ── User Auth ──────────────────────────────────────────
@@ -118,6 +166,18 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ token }),
     })
+  }
+
+  async likeRace(id: string): Promise<LikeResponse> {
+    return this.userAuthRequest<LikeResponse>(`/api/v1/races/${id}/like`, { method: 'POST' })
+  }
+
+  async unlikeRace(id: string): Promise<LikeResponse> {
+    return this.userAuthRequest<LikeResponse>(`/api/v1/races/${id}/like`, { method: 'DELETE' })
+  }
+
+  async getLikedRaces(): Promise<RacesListResponse> {
+    return this.userAuthRequest<RacesListResponse>('/api/v1/users/me/liked-races')
   }
 
   async deleteAccount(): Promise<void> {

@@ -1,12 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { MapPin, Calendar, Building2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { MapPin, Calendar, Building2, Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ApiRaceListItem } from '@/lib/api-types'
 import { distancePillColors } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
+import { isUserLoggedIn } from '@/lib/auth'
 
 interface RaceCardProps {
   race: ApiRaceListItem
@@ -25,6 +29,11 @@ const statusColors: Record<string, string> = {
 }
 
 export function RaceCard({ race }: RaceCardProps) {
+  const router = useRouter()
+  const [liked, setLiked] = useState(race.isLiked)
+  const [likeCount, setLikeCount] = useState(race.likeCount)
+  const [isPending, setIsPending] = useState(false)
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString('ko-KR', {
@@ -32,6 +41,34 @@ export function RaceCard({ race }: RaceCardProps) {
       month: 'long',
       day: 'numeric',
     })
+  }
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!isUserLoggedIn()) {
+      router.push('/login')
+      return
+    }
+
+    if (isPending) return
+
+    const nextLiked = !liked
+    setLiked(nextLiked)
+    setLikeCount((c) => c + (nextLiked ? 1 : -1))
+    setIsPending(true)
+
+    try {
+      const res = nextLiked ? await api.likeRace(race.id) : await api.unlikeRace(race.id)
+      setLiked(res.isLiked)
+      setLikeCount(res.likeCount)
+    } catch {
+      setLiked(!nextLiked)
+      setLikeCount((c) => c + (nextLiked ? -1 : 1))
+    } finally {
+      setIsPending(false)
+    }
   }
 
   return (
@@ -73,9 +110,24 @@ export function RaceCard({ race }: RaceCardProps) {
           <span className="truncate">{race.organizer}</span>
         </div>
 
-        <Button asChild className="w-full bg-amber text-foreground hover:bg-amber/90">
-          <Link href={`/races/${race.id}`}>자세히 보기</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild className="flex-1 bg-amber text-foreground hover:bg-amber/90">
+            <Link href={`/races/${race.id}`}>자세히 보기</Link>
+          </Button>
+          <button
+            onClick={handleLike}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+              liked
+                ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100'
+                : 'border-border bg-background text-muted-foreground hover:bg-muted'
+            )}
+            aria-label={liked ? '좋아요 취소' : '좋아요'}
+          >
+            <Heart className={cn('h-4 w-4', liked && 'fill-red-500')} />
+            <span>{likeCount}</span>
+          </button>
+        </div>
       </div>
     </div>
   )
