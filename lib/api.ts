@@ -7,7 +7,6 @@ import type {
   UserRegisterResponse,
   RegisterRaceRequest,
   UpdateRaceRequest,
-  ApiError,
 } from './api-types'
 
 const API_BASE = 'https://api.runmarket.cc'
@@ -20,6 +19,7 @@ class ApiClient {
     const url = `${API_BASE}${endpoint}`
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       ...options.headers,
     }
 
@@ -29,10 +29,16 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      const errorData: ApiError = await response.json().catch(() => ({
-        message: 'An error occurred',
-      }))
-      throw new Error(errorData.message || `HTTP error ${response.status}`)
+      const errorData = await response.json().catch(() => null)
+      // ProblemDetail format (Spring): { detail: "..." }
+      // BasicErrorController format: { error: "..." }
+      // Legacy format: { message: "..." }
+      const message =
+        errorData?.detail ||
+        errorData?.message ||
+        errorData?.error ||
+        `HTTP error ${response.status}`
+      throw new Error(message)
     }
 
     if (response.status === 204) {
@@ -55,6 +61,7 @@ class ApiClient {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers,
         Authorization: `Bearer ${token}`,
       },
@@ -69,10 +76,13 @@ class ApiClient {
         throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
       }
 
-      const errorData: ApiError = await response.json().catch(() => ({
-        message: 'An error occurred',
-      }))
-      throw new Error(errorData.message || `HTTP error ${response.status}`)
+      const errorData = await response.json().catch(() => null)
+      const message =
+        errorData?.detail ||
+        errorData?.message ||
+        errorData?.error ||
+        `HTTP error ${response.status}`
+      throw new Error(message)
     }
 
     if (response.status === 204) return undefined as T
