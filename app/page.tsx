@@ -14,6 +14,7 @@ import type { DistanceFilter, StatusFilter } from '@/lib/types'
 
 const PAGE_SIZE = 20
 const STANDARD_DISTANCES = ['5km', '10km', '하프', '풀']
+const STATUS_ORDER: Record<string, number> = { OPEN: 0, UPCOMING: 1, CLOSED: 2 }
 
 function HomeContent() {
   const searchParams = useSearchParams()
@@ -103,6 +104,10 @@ function HomeContent() {
       if (statusFilter !== 'ALL' && race.registrationStatus !== statusFilter) return false
 
       return true
+    }).sort((a, b) => {
+      const statusDiff = STATUS_ORDER[a.registrationStatus] - STATUS_ORDER[b.registrationStatus]
+      if (statusDiff !== 0) return statusDiff
+      return a.date.localeCompare(b.date)
     })
   }, [races, searchQuery, distanceFilter, statusFilter])
 
