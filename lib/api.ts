@@ -1,4 +1,4 @@
-import { getAuthToken, clearAuthToken } from './auth'
+import { getAuthToken, clearAuthToken, getUserToken, clearUserSession } from './auth'
 import type {
   ApiRace,
   RacesListResponse,
@@ -118,6 +118,32 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ token }),
     })
+  }
+
+  async deleteAccount(): Promise<void> {
+    const token = getUserToken()
+    if (!token) throw new Error('인증이 필요합니다')
+
+    const response = await fetch(`${API_BASE}/api/v1/users/me`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      const message =
+        errorData?.detail ||
+        errorData?.message ||
+        errorData?.error ||
+        `HTTP error ${response.status}`
+      throw new Error(message)
+    }
+
+    clearUserSession()
   }
 
   // ── Admin Auth ─────────────────────────────────────────

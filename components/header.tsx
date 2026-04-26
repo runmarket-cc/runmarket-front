@@ -93,6 +93,13 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
                     <p className="text-xs text-muted-foreground">로그인됨</p>
                   </div>
                   <div className="py-1">
+                    <Link
+                      href="/mypage"
+                      className="block w-full px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-gray-100"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      마이페이지
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-gray-100"
