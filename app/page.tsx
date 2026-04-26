@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { ChevronUp } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Hero } from '@/components/hero'
@@ -11,6 +12,9 @@ import { api } from '@/lib/api'
 import type { ApiRaceListItem } from '@/lib/api-types'
 import type { DistanceFilter, StatusFilter } from '@/lib/types'
 
+const PAGE_SIZE = 20
+const STANDARD_DISTANCES = ['5km', '10km', '하프', '풀']
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [distanceFilter, setDistanceFilter] = useState<DistanceFilter>('ALL')
@@ -19,6 +23,10 @@ export default function Home() {
   const [races, setRaces] = useState<ApiRaceListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const loadRaces = async () => {
     try {
@@ -41,31 +49,69 @@ export default function Home() {
   }, [])
 
   const filteredRaces = useMemo(() => {
+    setDisplayCount(PAGE_SIZE)
     return races.filter((race) => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const matchesName = race.name.toLowerCase().includes(query)
         const matchesRegion = race.region.toLowerCase().includes(query)
         const matchesVenue = race.venue.toLowerCase().includes(query)
-        if (!matchesName && !matchesRegion && !matchesVenue) {
-          return false
-        }
+        if (!matchesName && !matchesRegion && !matchesVenue) return false
       }
 
       if (distanceFilter !== 'ALL') {
-        const hasMatchingCourse = race.courses.some((c) =>
-          c.toLowerCase().includes(distanceFilter.toLowerCase())
-        )
-        if (!hasMatchingCourse) return false
+        if (distanceFilter === '기타') {
+          const isStandard = race.courses.some((c) =>
+            STANDARD_DISTANCES.some((d) => c.toLowerCase().includes(d.toLowerCase()))
+          )
+          if (isStandard) return false
+        } else {
+          const hasMatchingCourse = race.courses.some((c) =>
+            c.toLowerCase().includes(distanceFilter.toLowerCase())
+          )
+          if (!hasMatchingCourse) return false
+        }
       }
 
-      if (statusFilter !== 'ALL' && race.registrationStatus !== statusFilter) {
-        return false
-      }
+      if (statusFilter !== 'ALL' && race.registrationStatus !== statusFilter) return false
 
       return true
     })
   }, [races, searchQuery, distanceFilter, statusFilter])
+
+  const visibleRaces = useMemo(
+    () => filteredRaces.slice(0, displayCount),
+    [filteredRaces, displayCount]
+  )
+
+  const hasMore = displayCount < filteredRaces.length
+
+  const loadMore = useCallback(() => {
+    setDisplayCount((prev) => Math.min(prev + PAGE_SIZE, filteredRaces.length))
+  }, [filteredRaces.length])
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore])
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,21 +151,37 @@ export default function Home() {
             </p>
 
             {filteredRaces.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredRaces.map((race) => (
-                  <RaceCard key={race.id} race={race} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {visibleRaces.map((race) => (
+                    <RaceCard key={race.id} race={race} />
+                  ))}
+                </div>
+
+                <div ref={sentinelRef} className="mt-8 flex justify-center py-4">
+                  {hasMore && (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </>
             ) : (
               <div className="py-12 text-center">
-                <p className="text-muted-foreground">
-                  검색 조건에 맞는 대회가 없습니다.
-                </p>
+                <p className="text-muted-foreground">검색 조건에 맞는 대회가 없습니다.</p>
               </div>
             )}
           </>
         )}
       </main>
+
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-navy text-white shadow-lg transition-opacity hover:opacity-80"
+          aria-label="맨 위로"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </button>
+      )}
     </div>
   )
 }
