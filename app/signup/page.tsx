@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
+import { Turnstile } from '@/components/turnstile'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -15,6 +16,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,13 +37,19 @@ export default function SignupPage() {
       return
     }
 
+    if (!turnstileToken) {
+      setError('보안 인증을 완료해주세요.')
+      return
+    }
+
     setIsLoading(true)
     try {
-      await api.userRegister(email.trim(), password)
+      await api.userRegister(email.trim(), password, turnstileToken)
       setSuccess(true)
     } catch (err) {
       const message = err instanceof Error ? err.message : '회원가입에 실패했습니다'
       setError(message)
+      setTurnstileToken('')
     } finally {
       setIsLoading(false)
     }
@@ -128,6 +136,12 @@ export default function SignupPage() {
             />
           </div>
 
+          <Turnstile
+            onVerify={setTurnstileToken}
+            onExpire={() => setTurnstileToken('')}
+            onError={() => setTurnstileToken('')}
+          />
+
           {error && (
             <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
@@ -137,7 +151,7 @@ export default function SignupPage() {
           <Button
             type="submit"
             className="w-full bg-amber text-navy font-semibold hover:bg-amber/90"
-            disabled={isLoading}
+            disabled={isLoading || !turnstileToken}
           >
             {isLoading ? (
               <>

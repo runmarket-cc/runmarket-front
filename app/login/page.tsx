@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 import { setUserSession } from '@/lib/auth'
+import { Turnstile } from '@/components/turnstile'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,9 +29,14 @@ export default function LoginPage() {
       return
     }
 
+    if (!turnstileToken) {
+      setError('보안 인증을 완료해주세요.')
+      return
+    }
+
     setIsLoading(true)
     try {
-      const response = await api.userLogin(email.trim(), password)
+      const response = await api.userLogin(email.trim(), password, turnstileToken)
       setUserSession(response.accessToken, email.trim())
       toast.success('로그인되었습니다')
       router.push('/')
@@ -37,6 +44,7 @@ export default function LoginPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : '로그인에 실패했습니다'
       setError(message)
+      setTurnstileToken('')
     } finally {
       setIsLoading(false)
     }
@@ -81,6 +89,12 @@ export default function LoginPage() {
             />
           </div>
 
+          <Turnstile
+            onVerify={setTurnstileToken}
+            onExpire={() => setTurnstileToken('')}
+            onError={() => setTurnstileToken('')}
+          />
+
           {error && (
             <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
@@ -90,7 +104,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             className="w-full bg-amber text-navy font-semibold hover:bg-amber/90"
-            disabled={isLoading}
+            disabled={isLoading || !turnstileToken}
           >
             {isLoading ? (
               <>

@@ -147,17 +147,17 @@ class ApiClient {
   }
 
   // ── User Auth ──────────────────────────────────────────
-  async userLogin(email: string, password: string): Promise<UserLoginResponse> {
+  async userLogin(email: string, password: string, turnstileToken: string): Promise<UserLoginResponse> {
     return this.request<UserLoginResponse>('/api/v1/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, turnstileToken }),
     })
   }
 
-  async userRegister(email: string, password: string): Promise<UserRegisterResponse> {
+  async userRegister(email: string, password: string, turnstileToken: string): Promise<UserRegisterResponse> {
     return this.request<UserRegisterResponse>('/api/v1/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, turnstileToken }),
     })
   }
 
