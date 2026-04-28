@@ -164,15 +164,18 @@ export default function RaceDetailPage() {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={handleLike}
+                disabled={isLikePending}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed',
                   liked
                     ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100'
                     : 'border-border bg-background text-muted-foreground hover:bg-muted'
                 )}
                 aria-label={liked ? '좋아요 취소' : '좋아요'}
               >
-                <Heart className={cn('h-4 w-4', liked && 'fill-red-500')} />
+                {isLikePending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Heart className={cn('h-4 w-4', liked && 'fill-red-500')} />}
                 <span>{likeCount}</span>
               </button>
               {isAdmin && (
