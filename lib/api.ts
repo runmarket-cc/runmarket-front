@@ -8,6 +8,7 @@ import type {
   RegisterRaceRequest,
   UpdateRaceRequest,
   LikeResponse,
+  AirQualityResponse,
 } from './api-types'
 
 const API_BASE = 'https://api.runmarket.cc'
@@ -178,6 +179,10 @@ class ApiClient {
 
   async getLikedRaces(): Promise<RacesListResponse> {
     return this.userAuthRequest<RacesListResponse>('/api/v1/users/me/liked-races')
+  }
+
+  async getAirQuality(): Promise<AirQualityResponse> {
+    return this.userAuthRequest<AirQualityResponse>('/api/v1/air-quality/districts')
   }
 
   async deleteAccount(): Promise<void> {
