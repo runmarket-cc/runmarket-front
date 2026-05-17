@@ -7,10 +7,8 @@ import { Header } from '@/components/header'
 import { Hero } from '@/components/hero'
 import { FilterBar } from '@/components/filter-bar'
 import { RaceCard } from '@/components/race-card'
-import { AirQualityWidget } from '@/components/air-quality-widget'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
-import { isUserLoggedIn } from '@/lib/auth'
 import type { ApiRaceListItem } from '@/lib/api-types'
 import type { DistanceFilter, StatusFilter } from '@/lib/types'
 
@@ -36,11 +34,6 @@ function HomeContent() {
   const [error, setError] = useState<string | null>(null)
   const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const [loggedIn, setLoggedIn] = useState(false)
-
-  useEffect(() => {
-    setLoggedIn(isUserLoggedIn())
-  }, [])
 
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -154,8 +147,6 @@ function HomeContent() {
         onDistanceChange={setDistanceFilter}
         onStatusChange={setStatusFilter}
       />
-
-      {loggedIn && <AirQualityWidget />}
 
       <main id="races-section" className="mx-auto max-w-7xl px-4 py-6">
         {isLoading ? (

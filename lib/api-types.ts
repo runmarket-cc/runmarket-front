@@ -75,18 +75,3 @@ export interface ApiError {
   message?: string
   error?: string    // Spring BasicErrorController
 }
-
-// ── Air Quality ────────────────────────────────────────
-export interface AirQualityDistrict {
-  name: string
-  pm10: number
-  pm25: number
-  ozon: number
-  cai: number
-  caiGrade: string
-}
-
-export interface AirQualityResponse {
-  districts: AirQualityDistrict[]
-  runningAdvice: string
-}
