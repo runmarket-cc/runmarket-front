@@ -146,15 +146,6 @@ export default function LoginPage() {
           <Link href="/signup">새 계정 만들기</Link>
         </Button>
       </div>
-
-      <div className="mt-10 border-t border-gray-300 pt-5 text-center">
-        <Link
-          href="/admin/login"
-          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-        >
-          관리자 로그인
-        </Link>
-      </div>
     </div>
   )
 }
