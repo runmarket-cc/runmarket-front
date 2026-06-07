@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileKey, setTurnstileKey] = useState(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,6 +46,7 @@ export default function LoginPage() {
       const message = err instanceof Error ? err.message : '로그인에 실패했습니다'
       setError(message)
       setTurnstileToken('')
+      setTurnstileKey((k) => k + 1)
     } finally {
       setIsLoading(false)
     }
@@ -90,6 +92,7 @@ export default function LoginPage() {
           </div>
 
           <Turnstile
+            key={turnstileKey}
             onVerify={setTurnstileToken}
             onExpire={() => setTurnstileToken('')}
             onError={() => setTurnstileToken('')}
