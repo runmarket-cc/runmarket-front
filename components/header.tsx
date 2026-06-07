@@ -5,6 +5,7 @@ import { Search, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { isLoggedIn, isUserLoggedIn, getUserEmail, clearUserSession } from '@/lib/auth'
+import { RunmarketLogo } from '@/components/runmarket-logo'
 
 interface HeaderProps {
   searchQuery: string
@@ -51,9 +52,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     <header className="sticky top-0 z-50 bg-navy">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
         {/* Logo */}
-        <Link href="/" className="shrink-0 text-xl font-extrabold text-amber">
-          런마켓
-        </Link>
+        <RunmarketLogo variant="on-dark" size="md" />
 
         {/* Search */}
         <div className="flex min-w-0 flex-1 items-center">

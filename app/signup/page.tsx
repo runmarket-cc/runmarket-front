@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Loader2, MailCheck } from 'lucide-react'
+import { RunmarketLogo } from '@/components/runmarket-logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,9 +59,7 @@ export default function SignupPage() {
   if (success) {
     return (
       <div className="flex min-h-screen flex-col items-center bg-gray-100 pb-16 pt-8">
-        <Link href="/" className="mb-5 text-2xl font-extrabold tracking-tight text-navy">
-          런마켓
-        </Link>
+        <RunmarketLogo variant="on-light" size="lg" className="mb-5" />
 
         <div className="w-full max-w-sm rounded-lg border border-gray-300 bg-white px-6 py-8 shadow-sm text-center">
           <MailCheck className="mx-auto mb-4 h-12 w-12 text-status-green" />
