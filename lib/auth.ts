@@ -48,5 +48,16 @@ export function getUserEmail(): string | null {
 }
 
 export function isUserLoggedIn(): boolean {
-  return !!getUserToken()
+  const token = getUserToken()
+  if (!token) return false
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      clearUserSession()
+      return false
+    }
+  } catch {
+    // JWT 파싱 실패 시 토큰을 신뢰
+  }
+  return true
 }
