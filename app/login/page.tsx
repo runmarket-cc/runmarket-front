@@ -37,7 +37,7 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const response = await api.userLogin(email.trim(), password, turnstileToken)
-      setUserSession(response.accessToken, email.trim())
+      setUserSession(response.accessToken, email.trim(), response.expiresAt)
       toast.success('로그인되었습니다')
       router.push('/')
       router.refresh()
