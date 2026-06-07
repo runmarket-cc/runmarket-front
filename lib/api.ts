@@ -11,6 +11,25 @@ import type {
 } from './api-types'
 
 const API_BASE = 'https://api.runmarket.cc'
+const REQUEST_TIMEOUT_MS = 15_000
+
+function withTimeout(signal?: AbortSignal): { signal: AbortSignal; clear: () => void } {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  if (signal) {
+    signal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+
+  return { signal: controller.signal, clear: () => clearTimeout(timeoutId) }
+}
+
+function handleAbort(err: unknown): never {
+  if (err instanceof Error && err.name === 'AbortError') {
+    throw new Error('요청 시간이 초과되었습니다. 네트워크 연결을 확인해주세요.')
+  }
+  throw err
+}
 
 class ApiClient {
   private async request<T>(
@@ -24,29 +43,33 @@ class ApiClient {
       ...options.headers,
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
+    const { signal, clear } = withTimeout(options.signal as AbortSignal | undefined)
+    try {
+      const response = await fetch(url, { ...options, headers, signal })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      // ProblemDetail format (Spring): { detail: "..." }
-      // BasicErrorController format: { error: "..." }
-      // Legacy format: { message: "..." }
-      const message =
-        errorData?.detail ||
-        errorData?.message ||
-        errorData?.error ||
-        `HTTP error ${response.status}`
-      throw new Error(message)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        // ProblemDetail format (Spring): { detail: "..." }
+        // BasicErrorController format: { error: "..." }
+        // Legacy format: { message: "..." }
+        const message =
+          errorData?.detail ||
+          errorData?.message ||
+          errorData?.error ||
+          `HTTP error ${response.status}`
+        throw new Error(message)
+      }
+
+      if (response.status === 204) {
+        return undefined as T
+      }
+
+      return response.json()
+    } catch (err) {
+      handleAbort(err)
+    } finally {
+      clear()
     }
-
-    if (response.status === 204) {
-      return undefined as T
-    }
-
-    return response.json()
   }
 
   private async userAuthRequest<T>(
@@ -58,36 +81,44 @@ class ApiClient {
       throw new Error('인증이 필요합니다')
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const { signal, clear } = withTimeout(options.signal as AbortSignal | undefined)
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        },
+        signal,
+      })
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        clearUserSession()
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+      if (!response.ok) {
+        if (response.status === 401) {
+          clearUserSession()
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
+          }
+          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
         }
-        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
+
+        const errorData = await response.json().catch(() => null)
+        const message =
+          errorData?.detail ||
+          errorData?.message ||
+          errorData?.error ||
+          `HTTP error ${response.status}`
+        throw new Error(message)
       }
 
-      const errorData = await response.json().catch(() => null)
-      const message =
-        errorData?.detail ||
-        errorData?.message ||
-        errorData?.error ||
-        `HTTP error ${response.status}`
-      throw new Error(message)
+      if (response.status === 204) return undefined as T
+      return response.json()
+    } catch (err) {
+      handleAbort(err)
+    } finally {
+      clear()
     }
-
-    if (response.status === 204) return undefined as T
-    return response.json()
   }
 
   private async authRequest<T>(
@@ -99,36 +130,44 @@ class ApiClient {
       throw new Error('인증이 필요합니다')
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    const { signal, clear } = withTimeout(options.signal as AbortSignal | undefined)
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        },
+        signal,
+      })
 
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        clearAuthToken()
-        if (typeof window !== 'undefined') {
-          window.location.href = '/admin/login'
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          clearAuthToken()
+          if (typeof window !== 'undefined') {
+            window.location.href = '/admin/login'
+          }
+          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
         }
-        throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.')
+
+        const errorData = await response.json().catch(() => null)
+        const message =
+          errorData?.detail ||
+          errorData?.message ||
+          errorData?.error ||
+          `HTTP error ${response.status}`
+        throw new Error(message)
       }
 
-      const errorData = await response.json().catch(() => null)
-      const message =
-        errorData?.detail ||
-        errorData?.message ||
-        errorData?.error ||
-        `HTTP error ${response.status}`
-      throw new Error(message)
+      if (response.status === 204) return undefined as T
+      return response.json()
+    } catch (err) {
+      handleAbort(err)
+    } finally {
+      clear()
     }
-
-    if (response.status === 204) return undefined as T
-    return response.json()
   }
 
   // ── Public APIs ────────────────────────────────────────
