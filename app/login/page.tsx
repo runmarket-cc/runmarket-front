@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 import { setUserSession } from '@/lib/auth'
 import { Turnstile } from '@/components/turnstile'
+import { RunmarketLogo } from '@/components/runmarket-logo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -54,9 +55,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-100 pb-16 pt-8">
-      <Link href="/" className="mb-5 text-2xl font-extrabold tracking-tight text-navy">
-        런마켓
-      </Link>
+      <RunmarketLogo variant="on-light" size="lg" className="mb-5" />
 
       <div className="w-full max-w-sm rounded-lg border border-gray-300 bg-white px-6 py-6 shadow-sm">
         <h1 className="mb-5 text-xl font-semibold text-foreground">로그인</h1>
