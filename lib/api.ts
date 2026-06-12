@@ -5,6 +5,7 @@ import type {
   LoginResponse,
   UserLoginResponse,
   UserRegisterResponse,
+  PasswordResetResponse,
   RegisterRaceRequest,
   UpdateRaceRequest,
   LikeResponse,
@@ -204,6 +205,20 @@ class ApiClient {
     return this.request<UserRegisterResponse>('/api/v1/auth/verify', {
       method: 'PATCH',
       body: JSON.stringify({ token }),
+    })
+  }
+
+  async requestPasswordReset(email: string, turnstileToken: string): Promise<PasswordResetResponse> {
+    return this.request<PasswordResetResponse>('/api/v1/auth/password-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email, turnstileToken }),
+    })
+  }
+
+  async confirmPasswordReset(token: string, newPassword: string): Promise<PasswordResetResponse> {
+    return this.request<PasswordResetResponse>('/api/v1/auth/password-reset', {
+      method: 'PATCH',
+      body: JSON.stringify({ token, newPassword }),
     })
   }
 
