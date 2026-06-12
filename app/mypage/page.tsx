@@ -11,6 +11,7 @@ import { RaceCard } from '@/components/race-card'
 
 export default function MypagePage() {
   const router = useRouter()
+  const [ready, setReady] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
@@ -25,6 +26,7 @@ export default function MypagePage() {
       return
     }
     setEmail(getUserEmail())
+    setReady(true)
 
     api.getLikedRaces()
       .then(setLikedRaces)
@@ -32,7 +34,10 @@ export default function MypagePage() {
       .finally(() => setLikedRacesLoading(false))
   }, [router])
 
-  if (!email) return null
+  // Gate on the auth check completing, not on `email`. The email entry can be
+  // absent (e.g. an app webview that restored only the token) and gating on it
+  // would leave a logged-in user staring at a blank screen.
+  if (!ready) return null
 
   const handleDelete = async () => {
     if (deleteConfirm !== '탈퇴') return
@@ -71,7 +76,7 @@ export default function MypagePage() {
               <Mail className="h-4 w-4 text-gray-400 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-gray-500">이메일</p>
-                <p className="text-sm font-medium text-gray-900 truncate">{email}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">{email ?? '—'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 px-4 py-3.5">

@@ -44,7 +44,19 @@ export function clearUserSession(): void {
 
 export function getUserEmail(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem(USER_EMAIL_KEY)
+  const stored = localStorage.getItem(USER_EMAIL_KEY)
+  if (stored) return stored
+  // Fallback: derive the email from the JWT when the email entry is missing.
+  // This happens in app webviews where the session is restored with only the
+  // token, which would otherwise leave the email null.
+  const token = getUserToken()
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.email ?? payload.sub ?? null
+  } catch {
+    return null
+  }
 }
 
 export function isUserLoggedIn(): boolean {
