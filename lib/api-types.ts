@@ -44,6 +44,10 @@ export interface UserRegisterResponse {
   message: string
 }
 
+export interface PasswordResetResponse {
+  message: string
+}
+
 // ── Admin Requests ─────────────────────────────────────
 export interface RegisterRaceRequest {
   name: string
