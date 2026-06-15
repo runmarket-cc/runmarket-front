@@ -165,9 +165,9 @@ export default function SignupPage() {
 
         <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
           계정을 만들면{' '}
-          <Link href="/terms" className="text-blue-600 hover:underline">이용약관</Link>
+          <a href="https://api.runmarket.cc/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">이용약관</a>
           {' '}및{' '}
-          <Link href="/privacy" className="text-blue-600 hover:underline">개인정보처리방침</Link>
+          <a href="https://api.runmarket.cc/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">개인정보처리방침</a>
           에 동의하는 것으로 간주됩니다.
         </p>
       </div>
