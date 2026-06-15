@@ -9,6 +9,7 @@ import type {
   RegisterRaceRequest,
   UpdateRaceRequest,
   LikeResponse,
+  LegalDocument,
 } from './api-types'
 
 const API_BASE = 'https://api.runmarket.cc'
@@ -184,6 +185,15 @@ class ApiClient {
     return this.request<ApiRace>(`/api/v1/races/${id}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
+  }
+
+  // ── Legal documents ────────────────────────────────────
+  async getTerms(): Promise<LegalDocument> {
+    return this.request<LegalDocument>('/api/v1/contents/terms')
+  }
+
+  async getPrivacy(): Promise<LegalDocument> {
+    return this.request<LegalDocument>('/api/v1/contents/privacy')
   }
 
   // ── User Auth ──────────────────────────────────────────
