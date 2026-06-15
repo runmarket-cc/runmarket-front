@@ -79,3 +79,32 @@ export interface ApiError {
   message?: string
   error?: string    // Spring BasicErrorController
 }
+
+// ── Legal documents (terms / privacy) ──────────────────
+export interface LegalListItem {
+  text: string
+  subItems?: LegalListItem[]
+}
+
+export interface LegalTable {
+  headers: string[]
+  rows: string[][]
+}
+
+export interface LegalBlock {
+  type: 'paragraph' | 'orderedList' | 'unorderedList' | 'table'
+  text?: string
+  items?: LegalListItem[]
+  table?: LegalTable
+}
+
+export interface LegalSection {
+  heading?: string
+  blocks: LegalBlock[]
+}
+
+export interface LegalDocument {
+  title: string
+  effectiveDate: string
+  sections: LegalSection[]
+}
