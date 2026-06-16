@@ -10,6 +10,8 @@ import type {
   UpdateRaceRequest,
   LikeResponse,
   LegalDocument,
+  RunListResponse,
+  RunDetail,
 } from './api-types'
 
 const API_BASE = 'https://api.runmarket.cc'
@@ -242,6 +244,15 @@ class ApiClient {
 
   async getLikedRaces(): Promise<RacesListResponse> {
     return this.userAuthRequest<RacesListResponse>('/api/v1/users/me/liked-races')
+  }
+
+  // ── Running records ────────────────────────────────────
+  async getUserRuns(): Promise<RunListResponse> {
+    return this.userAuthRequest<RunListResponse>('/api/v1/users/me/runs')
+  }
+
+  async getUserRun(id: string): Promise<RunDetail> {
+    return this.userAuthRequest<RunDetail>(`/api/v1/users/me/runs/${id}`)
   }
 
   async deleteAccount(): Promise<void> {

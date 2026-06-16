@@ -6,8 +6,10 @@ import Link from 'next/link'
 import { ChevronRight, Mail, ShieldCheck, Trash2, Loader2 } from 'lucide-react'
 import { isUserLoggedIn, getUserEmail } from '@/lib/auth'
 import { api } from '@/lib/api'
-import type { ApiRaceListItem } from '@/lib/api-types'
+import type { ApiRaceListItem, RunSummary } from '@/lib/api-types'
 import { RaceCard } from '@/components/race-card'
+import { RunCard } from '@/components/run-card'
+import { formatDistance } from '@/lib/run-format'
 
 export default function MypagePage() {
   const router = useRouter()
@@ -19,6 +21,8 @@ export default function MypagePage() {
   const [error, setError] = useState<string | null>(null)
   const [likedRaces, setLikedRaces] = useState<ApiRaceListItem[]>([])
   const [likedRacesLoading, setLikedRacesLoading] = useState(true)
+  const [runs, setRuns] = useState<RunSummary[]>([])
+  const [runsLoading, setRunsLoading] = useState(true)
 
   useEffect(() => {
     if (!isUserLoggedIn()) {
@@ -32,6 +36,11 @@ export default function MypagePage() {
       .then(setLikedRaces)
       .catch(() => {})
       .finally(() => setLikedRacesLoading(false))
+
+    api.getUserRuns()
+      .then(setRuns)
+      .catch(() => {})
+      .finally(() => setRunsLoading(false))
   }, [router])
 
   // Gate on the auth check completing, not on `email`. The email entry can be
@@ -106,6 +115,40 @@ export default function MypagePage() {
               {likedRaces.map((race) => (
                 <RaceCard key={race.id} race={race} />
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Running records */}
+        <div className="rounded-lg border bg-white overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">러닝 기록</p>
+            {runs.length > 0 && (
+              <span className="text-xs text-gray-400">
+                {runs.length}회 · {formatDistance(runs.reduce((s, r) => s + r.distanceKm, 0))}km
+              </span>
+            )}
+          </div>
+          {runsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            </div>
+          ) : runs.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-400">아직 러닝 기록이 없습니다.</p>
+          ) : (
+            <div className="p-4 space-y-3">
+              {runs.slice(0, 3).map((run) => (
+                <RunCard key={run.id} run={run} />
+              ))}
+              {runs.length > 3 && (
+                <Link
+                  href="/mypage/runs"
+                  className="flex items-center justify-center gap-1 rounded-md border py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  모든 기록 보기 ({runs.length})
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              )}
             </div>
           )}
         </div>

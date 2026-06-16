@@ -29,6 +29,32 @@ export interface ApiRace extends ApiRaceListItem {
 
 export type RacesListResponse = ApiRaceListItem[]
 
+// ── Running records ────────────────────────────────────
+export interface RunSummary {
+  id: string
+  startedAt: string   // ISO 8601 (UTC)
+  endedAt: string     // ISO 8601 (UTC)
+  durationSec: number
+  distanceKm: number
+  avgPaceSecPerKm: number
+  runnerId?: string
+  groupId?: string
+  color?: string
+}
+
+export type RunListResponse = RunSummary[]
+
+export interface RunRoutePoint {
+  lat: number
+  lng: number
+  t: number          // epoch ms
+  acc?: number | null
+}
+
+export interface RunDetail extends RunSummary {
+  route: RunRoutePoint[]
+}
+
 // ── Admin Auth ─────────────────────────────────────────
 export interface LoginResponse {
   token: string
