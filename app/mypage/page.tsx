@@ -72,7 +72,10 @@ export default function MypagePage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-2xl px-4 py-6 space-y-4">
+      {/* 앱 웹뷰의 떠 있는 하단 탭 바가 마지막 블록(회원 탈퇴)을 가리므로
+          하단 여백을 넉넉히 둬서 바 위로 스크롤되게 한다. 데스크톱 브라우저에선
+          맨 아래 약간의 여백만 생긴다. */}
+      <div className="mx-auto max-w-2xl px-4 pt-6 pb-28 space-y-4">
         <h1 className="text-lg font-bold text-gray-900">내 계정</h1>
 
         {/* Account info */}
