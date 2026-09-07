@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Loader2, ChevronUp } from 'lucide-react'
+import { format } from 'date-fns'
 import { Header } from '@/components/header'
 import { Hero } from '@/components/hero'
 import { FilterBar } from '@/components/filter-bar'
@@ -10,11 +11,31 @@ import { RaceCard } from '@/components/race-card'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import type { ApiRaceListItem } from '@/lib/api-types'
-import type { DistanceFilter, StatusFilter } from '@/lib/types'
+import {
+  SORT_OPTIONS,
+  type DistanceFilter,
+  type StatusFilter,
+  type RegionFilter,
+  type SortOrder,
+} from '@/lib/types'
 
 const PAGE_SIZE = 20
 const STANDARD_DISTANCES = ['5km', '10km', '하프', '풀']
 const STATUS_ORDER: Record<string, number> = { OPEN: 0, UPCOMING: 1, CLOSED: 2 }
+
+export function getRaceEffectiveDate(race: ApiRaceListItem): string | null {
+  if (race.date && race.date.trim()) {
+    return race.date.trim().slice(0, 10)
+  }
+  const regEnd =
+    (race as unknown as { registrationEndDate?: string; regEnd?: string })
+      .registrationEndDate ||
+    (race as unknown as { registrationEndDate?: string; regEnd?: string }).regEnd
+  if (regEnd && typeof regEnd === 'string' && regEnd.trim()) {
+    return regEnd.trim().slice(0, 10)
+  }
+  return null
+}
 
 function HomeContent() {
   const searchParams = useSearchParams()
@@ -28,6 +49,13 @@ function HomeContent() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
     (searchParams.get('status') as StatusFilter) ?? 'ALL'
   )
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>(
+    searchParams.get('region') ?? 'ALL'
+  )
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const s = searchParams.get('sort')
+    return s === 'STATUS' ? 'STATUS' : 'DATE_ASC'
+  })
 
   const [races, setRaces] = useState<ApiRaceListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -42,7 +70,8 @@ function HomeContent() {
       const data = await api.getRaces()
       setRaces(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : '대회 목록을 불러오는데 실패했습니다'
+      const message =
+        err instanceof Error ? err.message : '대회 목록을 불러오는데 실패했습니다'
       setError(message)
     }
   }
@@ -57,18 +86,20 @@ function HomeContent() {
     fetchInitial()
   }, [])
 
-  // URL 동기화 (검색어는 300ms 디바운스)
+  // URL 동기화 (검색어 및 필터 300ms 디바운스)
   useEffect(() => {
     const timer = setTimeout(() => {
       const params = new URLSearchParams()
       if (searchQuery) params.set('q', searchQuery)
       if (distanceFilter !== 'ALL') params.set('distance', distanceFilter)
       if (statusFilter !== 'ALL') params.set('status', statusFilter)
+      if (regionFilter !== 'ALL') params.set('region', regionFilter)
+      if (sortOrder !== 'DATE_ASC') params.set('sort', sortOrder)
       const qs = params.toString()
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, distanceFilter, statusFilter, router, pathname])
+  }, [searchQuery, distanceFilter, statusFilter, regionFilter, sortOrder, router, pathname])
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400)
@@ -76,40 +107,110 @@ function HomeContent() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const handleResetFilters = useCallback(() => {
+    setDistanceFilter('ALL')
+    setStatusFilter('ALL')
+    setRegionFilter('ALL')
+    setSortOrder('DATE_ASC')
+  }, [])
+
   const filteredRaces = useMemo(() => {
     setDisplayCount(PAGE_SIZE)
-    return races.filter((race) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesName = race.name.toLowerCase().includes(query)
-        const matchesRegion = race.region.toLowerCase().includes(query)
-        const matchesVenue = race.venue.toLowerCase().includes(query)
-        if (!matchesName && !matchesRegion && !matchesVenue) return false
-      }
-
-      if (distanceFilter !== 'ALL') {
-        if (distanceFilter === '기타') {
-          const isStandard = race.courses.some((c) =>
-            STANDARD_DISTANCES.some((d) => c.toLowerCase().includes(d.toLowerCase()))
-          )
-          if (isStandard) return false
-        } else {
-          const hasMatchingCourse = race.courses.some((c) =>
-            c.toLowerCase().includes(distanceFilter.toLowerCase())
-          )
-          if (!hasMatchingCourse) return false
+    return races
+      .filter((race) => {
+        // 1. 검색어 필터
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase()
+          const matchesName = race.name.toLowerCase().includes(query)
+          const matchesRegion = race.region.toLowerCase().includes(query)
+          const matchesVenue = race.venue.toLowerCase().includes(query)
+          if (!matchesName && !matchesRegion && !matchesVenue) return false
         }
-      }
 
-      if (statusFilter !== 'ALL' && race.registrationStatus !== statusFilter) return false
+        // 2. 거리 필터
+        if (distanceFilter !== 'ALL') {
+          if (distanceFilter === '기타') {
+            const isStandard = race.courses.some((c) =>
+              STANDARD_DISTANCES.some((d) =>
+                c.toLowerCase().includes(d.toLowerCase())
+              )
+            )
+            if (isStandard) return false
+          } else {
+            const hasMatchingCourse = race.courses.some((c) =>
+              c.toLowerCase().includes(distanceFilter.toLowerCase())
+            )
+            if (!hasMatchingCourse) return false
+          }
+        }
 
-      return true
-    }).sort((a, b) => {
-      const statusDiff = STATUS_ORDER[a.registrationStatus] - STATUS_ORDER[b.registrationStatus]
-      if (statusDiff !== 0) return statusDiff
-      return a.date.localeCompare(b.date)
-    })
-  }, [races, searchQuery, distanceFilter, statusFilter])
+        // 3. 상태 필터
+        if (statusFilter !== 'ALL' && race.registrationStatus !== statusFilter) {
+          return false
+        }
+
+        // 4. 지역 필터
+        if (regionFilter !== 'ALL') {
+          if (regionFilter === '기타') {
+            const standardRegions = [
+              '서울', '경기', '인천', '강원', '대전', '세종', '충남', '충북',
+              '광주', '전북', '전남', '대구', '경북', '부산', '울산', '경남', '제주'
+            ]
+            const isStandard = standardRegions.some((r) =>
+              race.region.includes(r)
+            )
+            if (isStandard && race.region !== '기타') return false
+          } else {
+            if (!race.region.includes(regionFilter)) return false
+          }
+        }
+
+        return true
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'STATUS') {
+          const statusDiff =
+            STATUS_ORDER[a.registrationStatus] -
+            STATUS_ORDER[b.registrationStatus]
+          if (statusDiff !== 0) return statusDiff
+          const dateA = getRaceEffectiveDate(a) ?? ''
+          const dateB = getRaceEffectiveDate(b) ?? ''
+          return dateA.localeCompare(dateB)
+        }
+
+        // 기본 정렬: 대회 날짜순 (오늘 날짜 기준 정렬)
+        const dateA = getRaceEffectiveDate(a) ?? ''
+        const dateB = getRaceEffectiveDate(b) ?? ''
+        const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+        const isUpcomingA = dateA >= todayStr
+        const isUpcomingB = dateB >= todayStr
+
+        // 1. 오늘 이후(예정) 대회가 지난 대회보다 먼저 표시됨
+        if (isUpcomingA !== isUpcomingB) {
+          return isUpcomingA ? -1 : 1
+        }
+
+        // 2. 둘 다 오늘 이후 대회인 경우: 오늘과 가장 가까운 순서(오름차순)
+        if (isUpcomingA && isUpcomingB) {
+          const dateDiff = dateA.localeCompare(dateB)
+          if (dateDiff !== 0) return dateDiff
+          // 날짜가 같으면 접수중(OPEN) > 접수예정(UPCOMING) > 마감(CLOSED) 순
+          return (
+            STATUS_ORDER[a.registrationStatus] -
+            STATUS_ORDER[b.registrationStatus]
+          )
+        }
+
+        // 3. 둘 다 지난 대회인 경우: 최근 종료된 대회부터 표시(내림차순)
+        const dateDiff = dateB.localeCompare(dateA)
+        if (dateDiff !== 0) return dateDiff
+        return (
+          STATUS_ORDER[a.registrationStatus] -
+          STATUS_ORDER[b.registrationStatus]
+        )
+      })
+  }, [races, searchQuery, distanceFilter, statusFilter, regionFilter, sortOrder])
 
   const visibleRaces = useMemo(
     () => filteredRaces.slice(0, displayCount),
@@ -137,6 +238,9 @@ function HomeContent() {
     return () => observer.disconnect()
   }, [hasMore, loadMore])
 
+  const currentSortLabel =
+    SORT_OPTIONS.find((o) => o.value === sortOrder)?.label ?? '대회 날짜순'
+
   return (
     <div className="min-h-screen bg-background">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
@@ -144,8 +248,13 @@ function HomeContent() {
       <FilterBar
         distanceFilter={distanceFilter}
         statusFilter={statusFilter}
+        regionFilter={regionFilter}
+        sortOrder={sortOrder}
         onDistanceChange={setDistanceFilter}
         onStatusChange={setStatusFilter}
+        onRegionChange={setRegionFilter}
+        onSortChange={setSortOrder}
+        onResetFilters={handleResetFilters}
       />
 
       <main id="races-section" className="mx-auto max-w-7xl px-4 py-6">
@@ -170,9 +279,20 @@ function HomeContent() {
           </div>
         ) : (
           <>
-            <p className="mb-4 text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{filteredRaces.length}개</span>의 대회
-            </p>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">
+                  {filteredRaces.length}개
+                </span>
+                의 대회
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span>정렬:</span>
+                <span className="font-semibold text-foreground">
+                  {currentSortLabel}
+                </span>
+              </div>
+            </div>
 
             {filteredRaces.length > 0 ? (
               <>
@@ -182,7 +302,10 @@ function HomeContent() {
                   ))}
                 </div>
 
-                <div ref={sentinelRef} className="mt-8 flex justify-center py-4">
+                <div
+                  ref={sentinelRef}
+                  className="mt-8 flex justify-center py-4"
+                >
                   {hasMore && (
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   )}
@@ -190,7 +313,17 @@ function HomeContent() {
               </>
             ) : (
               <div className="py-12 text-center">
-                <p className="text-muted-foreground">검색 조건에 맞는 대회가 없습니다.</p>
+                <p className="text-muted-foreground">
+                  검색 조건에 맞는 대회가 없습니다.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetFilters}
+                  className="mt-3 cursor-pointer"
+                >
+                  필터 초기화
+                </Button>
               </div>
             )}
           </>
@@ -200,7 +333,7 @@ function HomeContent() {
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-navy text-white shadow-lg transition-opacity hover:opacity-80"
+          className="fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-navy text-white shadow-lg transition-opacity hover:opacity-80 cursor-pointer"
           aria-label="맨 위로"
         >
           <ChevronUp className="h-5 w-5" />
